@@ -1,0 +1,1 @@
+Coloca aquí la imagen de tu ícono (ej. icon.png de 1024x1024 px) para usar con flutter_launcher_icons.

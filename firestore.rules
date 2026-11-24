@@ -1,0 +1,122 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userProfile(uid) {
+      return get(
+        /databases/$(database)/documents/users/$(uid)
+      );
+    }
+
+    // Perfiles de usuarios
+    match /users/{uid} {
+      // Se permite la lectura a usuarios autenticados para que el conteo de vecinos de la red funcione correctamente
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == 'resident'
+        && request.resource.data.communityId is string
+        && request.resource.data.communityId.size() > 0;
+
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.communityId == resource.data.communityId
+        && request.resource.data.email == resource.data.email;
+
+      allow delete: if false;
+    }
+
+    // Alertas comunitarias
+    match /alerts/{alertId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'active';
+
+      // Permite actualizar a cualquier usuario autenticado para poder "Marcar como visto" en alertas ajenas
+      allow update: if signedIn();
+
+      // Permite eliminar la alerta al usuario creador o administradores
+      allow delete: if signedIn()
+        && (
+          request.auth.uid == resource.data.userId
+          || userProfile(request.auth.uid).data.role in ['security', 'admin']
+        );
+    }
+
+    // Códigos de dispositivos AlarmaGo: acceso público (INTACTO)
+    match /codigos_dispositivos/{codigo} {
+
+      // Todos pueden consultar los códigos.
+      allow read: if true;
+
+      // Todos pueden crear códigos numéricos de 5 cifras.
+      allow create: if codigo.matches('^[0-9]{5}$')
+        && request.resource.data.codigo == codigo
+        && request.resource.data.nombre is string
+        && request.resource.data.fechaCreacion is timestamp
+        && request.resource.data.fechaVencimiento is timestamp
+        && request.resource.data.activo == false;
+
+      // Todos pueden modificar y renovar códigos.
+      allow update: if request.resource.data.codigo
+          == resource.data.codigo
+        && request.resource.data.fechaCreacion
+          == resource.data.fechaCreacion
+        && request.resource.data.nombre is string
+        && request.resource.data.fechaVencimiento is timestamp
+        && request.resource.data.activo is bool;
+
+      // No se permite eliminar códigos.
+      allow delete: if false;
+    }
+
+    // Comisarías: lectura pública para que aparezcan en el mapa y en las alertas de emergencia
+    match /comisarias/{comisariaId} {
+      allow read: if true;
+      allow write: if signedIn() && userProfile(request.auth.uid).data.role in ['admin', 'security'];
+    }
+
+    // Hospitales y Guardias: lectura pública para que aparezcan en el mapa y en las alertas de emergencia
+    match /hospitales/{hospitalId} {
+      allow read: if true;
+      allow write: if signedIn() && userProfile(request.auth.uid).data.role in ['admin', 'security'];
+    }
+
+    // Bomberos y Cuarteles: lectura pública para que aparezcan en el mapa y en las alertas de emergencia
+    match /bomberos/{bomberoId} {
+      allow read: if true;
+      allow write: if signedIn() && userProfile(request.auth.uid).data.role in ['admin', 'security'];
+    }
+
+    // Reclamos vecinales
+    match /claims/{claimId} {
+      // Lectura para usuarios autenticados
+      allow read: if signedIn();
+
+      // Creación permitida para el propio usuario emisor
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.communityId is string
+        && request.resource.data.communityId.size() > 0;
+
+      // Actualización permitida para dar "Me gusta" o "Responder"
+      allow update: if signedIn();
+
+      // Eliminación permitida al autor o administradores
+      allow delete: if signedIn()
+        && (
+          request.auth.uid == resource.data.userId
+          || userProfile(request.auth.uid).data.role in ['security', 'admin']
+        );
+    }
+  }
+}

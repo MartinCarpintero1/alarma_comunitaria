@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "444983505063",
+    "project_id": "alarma-c2803",
+    "storage_bucket": "alarma-c2803.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:444983505063:android:401daba721009373672b82",
+        "android_client_info": {
+          "package_name": "com.example.alarma_comunitaria"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOlvYoQMc938ReHeS6NeqXDX1rfobdy4Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
